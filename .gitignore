@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.ipynb
+
+.idea/
+.vscode/
+.ipynb_checkpoints/
+celerybeat-schedule
+celerybeat.pid
+static/
+migrations/
+.env
