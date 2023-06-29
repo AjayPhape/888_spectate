@@ -17,5 +17,6 @@ class ErrorCodes:
         201: 'Partial Success',
         300: "Parent id doesn't exists",
         301: "Record doesn't exists",
+        302: "Invalid Timezone",
         500: 'Server Error'
     }

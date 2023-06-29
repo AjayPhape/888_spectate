@@ -1,10 +1,11 @@
 import json
+from datetime import datetime
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from base.error_codes import ErrorCodes
-from base.utils import DBCursor
+from base.utils import DBCursor, is_timezone_valid, convert_tz
 
 
 # get your views here.
@@ -87,7 +88,7 @@ class GetSport(APIView):
                     filters.append('total_event >= %s' % req_filters["totalEvent"])
 
                 if 'name' in req_filters:
-                    filters.append(f"UPPER(name) LIKE UPPER('%{req_filters['name']}%')")
+                    filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
 
             if filters:
                 qry_cond = ' AND '.join(filters)
@@ -152,7 +153,16 @@ class GetEvent(APIView):
                     filters.append('total_selection >= %s' % req_filters["totalSelection"])
 
                 if 'name' in req_filters:
-                    filters.append(f"UPPER(name) LIKE UPPER('%{req_filters['name']}%')")
+                    filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
+
+                if 'scheduled_date' in req_filters:
+                    date_filter = req_filters['scheduled_date']
+                    utc_scheduled_date, utc_scheduled_date_str = convert_tz(date_filter)
+                    filters.append("strftime('%%Y-%%m-%%d %%H:%%M', scheduled_start) = '%s'" % utc_scheduled_date_str)
+                if 'actual_date' in req_filters:
+                    date_filter = req_filters['actual_date']
+                    utc_actual_date, utc_actual_date_str = convert_tz(date_filter)
+                    filters.append("strftime('%%Y-%%m-%%d %%H:%%M', actual_start) = '%s'" % utc_actual_date_str)
 
             if filters:
                 qry_cond = ' AND '.join(filters)
@@ -199,7 +209,7 @@ class GetSelection(APIView):
 
             if req_filters:
                 if 'name' in req_filters:
-                    filters.append(f"UPPER(name) LIKE UPPER('%{req_filters['name']}%')")
+                    filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
 
             if filters:
                 qry_cond = ' AND '.join(filters)
