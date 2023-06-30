@@ -4,7 +4,37 @@ from base.models import Event, Selection
 
 
 class GetSportSerializer(serializers.Serializer):
-    filter = serializers.JSONField()
+    class Filter(serializers.Serializer):
+        totalEvent = serializers.IntegerField(allow_null=True, default=0)
+        name = serializers.CharField(allow_blank=True, default='')
+        slug = serializers.CharField(allow_blank=True, default='')
+        active = serializers.BooleanField(allow_null=True, default=False)
+
+    filter = Filter()
+
+
+class GetEventSerializer(serializers.Serializer):
+    class Filter(serializers.Serializer):
+        totalSelection = serializers.IntegerField(allow_null=True, default=0)
+        name = serializers.CharField(allow_blank=True, default='')
+        scheduled_date = serializers.DateTimeField(input_formats=['%Y-%m-%d %H:%M:%S%z'])
+        actual_date = serializers.DateTimeField(input_formats=['%Y-%m-%d %H:%M:%S%z'])
+        slug = serializers.CharField(allow_blank=True, default='')
+        active = serializers.BooleanField(allow_null=True, default=False)
+        event_type = serializers.ChoiceField(choices=Event.SPORT_CHOICES, allow_blank=True)
+        status = serializers.ChoiceField(choices=Event.STATUS_CHOICES, allow_blank=True)
+
+    filter = Filter()
+
+
+class GetSelectionSerializer(serializers.Serializer):
+    class Filter(serializers.Serializer):
+        name = serializers.CharField(allow_blank=True, default='')
+        outcome = serializers.ChoiceField(allow_blank=True, choices=Selection.OUTCOME_CHOICES)
+        active = serializers.BooleanField(allow_null=True, default=True)
+        price = serializers.DictField(child=serializers.FloatField(default=0))
+
+    filter = Filter()
 
 
 class CreateSportSerializer(serializers.Serializer):

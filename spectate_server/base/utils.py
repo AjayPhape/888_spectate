@@ -47,8 +47,9 @@ def is_timezone_valid(timezone_option):
 
 
 def convert_tz(original_datetime, to_tz='utc'):
-    original_datetime = datetime.strptime(original_datetime, "%Y-%m-%d %H:%M:%S%z")
-    print("Original datetime:", original_datetime)
+    if not isinstance(original_datetime, datetime):
+        original_datetime = datetime.strptime(original_datetime, "%Y-%m-%d %H:%M:%S%z")
+        print("Original datetime:", original_datetime)
 
     # Convert the datetime to a different time zone
     target_timezone = pytz.timezone(to_tz)

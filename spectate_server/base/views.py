@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from base.error_codes import ErrorCodes
-from base.serializers import GetSportSerializer
+from base.serializers import GetSportSerializer, GetSelectionSerializer, GetEventSerializer
 from base.utils import DBCursor, is_timezone_valid, convert_tz
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ class GetSport(APIView):
 class GetEvent(APIView):
     authentication_classes = []
     permission_classes = []
-
+    serializer_class = GetEventSerializer
     @staticmethod
     def get_event(data):
         with DBCursor() as cr:
@@ -206,13 +206,18 @@ class GetEvent(APIView):
             return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.get_event(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.get_event(serializer.validated_data)
         return Response(resp)
 
 
 class GetSelection(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = GetSelectionSerializer
 
     @staticmethod
     def get_selection(data):
@@ -268,5 +273,9 @@ class GetSelection(APIView):
             return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.get_selection(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.get_selection(serializer.validated_data)
         return Response(resp)
