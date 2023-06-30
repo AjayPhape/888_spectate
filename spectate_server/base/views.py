@@ -1,11 +1,15 @@
 import json
+import logging
 from datetime import datetime
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from base.error_codes import ErrorCodes
+from base.serializers import GetSportSerializer
 from base.utils import DBCursor, is_timezone_valid, convert_tz
+
+logger = logging.getLogger(__name__)
 
 
 # get your views here.
@@ -43,6 +47,7 @@ from base.utils import DBCursor, is_timezone_valid, convert_tz
 class GetSport(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = GetSportSerializer
 
     @staticmethod
     def get_sport(data):
@@ -84,11 +89,17 @@ class GetSport(APIView):
             req_filters = data.get('filter')
             filters = []
             if req_filters:
-                if 'totalEvent' in req_filters:
+                if req_filters.get('totalEvent'):
                     filters.append('total_event >= %s' % req_filters["totalEvent"])
 
-                if 'name' in req_filters:
+                if req_filters.get('name'):
                     filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
+
+                if req_filters.get('slug'):
+                    filters.append("UPPER(slug) LIKE UPPER('%%%s%%')" % req_filters['slug'])
+
+                if req_filters.get('active'):
+                    filters.append("active = %s" % req_filters['active'])
 
             if filters:
                 qry_cond = ' AND '.join(filters)
@@ -104,7 +115,11 @@ class GetSport(APIView):
             return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.get_sport(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.get_sport(serializer.validated_data)
         return Response(resp)
 
 
@@ -149,17 +164,30 @@ class GetEvent(APIView):
             filters = []
 
             if req_filters:
-                if 'totalSelection' in req_filters:
+                if req_filters.get('totalSelection'):
                     filters.append('total_selection >= %s' % req_filters["totalSelection"])
 
-                if 'name' in req_filters:
+                if req_filters.get('name'):
                     filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
 
-                if 'scheduled_date' in req_filters:
+                if req_filters.get('slug'):
+                    filters.append("UPPER(slug) LIKE UPPER('%%%s%%')" % req_filters['slug'])
+
+                if req_filters.get('status'):
+                    filters.append("status = '%s'" % req_filters['status'])
+
+                if req_filters.get('event_type'):
+                    filters.append("event_type = '%s'" % req_filters['event_type'])
+
+                if req_filters.get('active'):
+                    filters.append("active = %s" % req_filters['active'])
+
+                if req_filters.get('scheduled_date'):
+                    '2023-06-30 23:30:00+05:30'
                     date_filter = req_filters['scheduled_date']
                     utc_scheduled_date, utc_scheduled_date_str = convert_tz(date_filter)
                     filters.append("strftime('%%Y-%%m-%%d %%H:%%M', scheduled_start) = '%s'" % utc_scheduled_date_str)
-                if 'actual_date' in req_filters:
+                if req_filters.get('actual_date'):
                     date_filter = req_filters['actual_date']
                     utc_actual_date, utc_actual_date_str = convert_tz(date_filter)
                     filters.append("strftime('%%Y-%%m-%%d %%H:%%M', actual_start) = '%s'" % utc_actual_date_str)
@@ -208,8 +236,23 @@ class GetSelection(APIView):
             filters = []
 
             if req_filters:
-                if 'name' in req_filters:
+                if req_filters.get('name'):
                     filters.append("UPPER(name) LIKE UPPER('%%%s%%')" % req_filters['name'])
+
+                if req_filters.get('outcome'):
+                    filters.append("outcome = '%s'" % req_filters['outcome'])
+
+                if req_filters.get('price'):
+                    price_filter = req_filters['price']
+                    if 'lte' in price_filter:
+                        filters.append("price <= %s" % price_filter['lte'])
+                    elif 'gte' in price_filter:
+                        filters.append("price >= %s" % price_filter['gte'])
+                    elif 'eq' in price_filter:
+                        filters.append("price = %s" % price_filter['eq'])
+
+                if req_filters.get('active'):
+                    filters.append("active = %s" % req_filters['active'])
 
             if filters:
                 qry_cond = ' AND '.join(filters)

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from base.error_codes import ErrorCodes
+from base.serializers import UpdateSelectionSerializer, UpdateEventSerializer, UpdateSportSerializer
 from base.utils import DBCursor
 
 
@@ -12,6 +13,7 @@ from base.utils import DBCursor
 class UpdateSport(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = UpdateSportSerializer
 
     @staticmethod
     def update_sport(data):
@@ -45,13 +47,18 @@ class UpdateSport(APIView):
         return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.update_sport(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.update_sport(serializer.validated_data)
         return Response(resp)
 
 
 class UpdateEvent(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = UpdateEventSerializer
 
     @staticmethod
     def check_event_status(event_id, cr, resp=None):
@@ -115,14 +122,18 @@ class UpdateEvent(APIView):
             return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.update_event(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.update_event(serializer.validated_data)
         return Response(resp)
 
 
 class UpdateSelection(APIView):
     authentication_classes = []
     permission_classes = []
-
+    serializer_class = UpdateSelectionSerializer
     @staticmethod
     def check_selection_status(selection_id, cr):
         # check if there is any active selection for event
@@ -178,5 +189,9 @@ class UpdateSelection(APIView):
             return resp
 
     def post(self, request, *args, **kwargs):
-        resp = self.update_selection(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.update_selection(serializer.validated_data)
         return Response(resp)

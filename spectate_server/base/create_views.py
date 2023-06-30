@@ -1,10 +1,14 @@
+import logging
 from datetime import datetime
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from base.error_codes import ErrorCodes
+from base.serializers import CreateSportSerializer, CreateEventSerializer, CreateSelectionSerializer
 from base.utils import DBCursor
+
+logger = logging.getLogger(__name__)
 
 
 # Create your views here.
@@ -16,6 +20,7 @@ def get_last_inserted_id(cr):
 class CreateSport(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = CreateSportSerializer
 
     @staticmethod
     def create_sport(data):
@@ -45,13 +50,18 @@ class CreateSport(APIView):
             return {**resp, 'id': rec_id}
 
     def post(self, request, *args, **kwargs):
-        resp = self.create_sport(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.create_sport(serializer.validated_data)
         return Response(resp)
 
 
 class CreateEvent(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = CreateEventSerializer
 
     @staticmethod
     def is_sport_exists(sport_id, cr):
@@ -103,13 +113,18 @@ class CreateEvent(APIView):
             return {**resp, 'id': rec_id}
 
     def post(self, request, *args, **kwargs):
-        resp = self.create_event(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.create_event(serializer.validated_data)
         return Response(resp)
 
 
 class CreateSelection(APIView):
     authentication_classes = []
     permission_classes = []
+    serializer_class = CreateSelectionSerializer
 
     @staticmethod
     def is_event_exists(event_id, cr):
@@ -158,5 +173,9 @@ class CreateSelection(APIView):
             return {**resp, 'id': rec_id}
 
     def post(self, request, *args, **kwargs):
-        resp = self.create_selection(request.data)
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({**ErrorCodes.get_error_response(500), 'responseMessage': serializer.errors})
+
+        resp = self.create_selection(serializer.validated_data)
         return Response(resp)
