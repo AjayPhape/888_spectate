@@ -1,80 +1,205 @@
-# import pytest as pytest
-# from django.test import TestCase
-#
-# # Create your tests here.
-# from django.urls import reverse
-# from rest_framework import status
-# from rest_framework.test import APIClient
-#
-# def test_get_sport(api_client):
-#     url = reverse('get-sport')  # Replace with your URL name or pattern
-#     data = {
-#         'filter': {
-#             'totalEvent': 10,
-#             'name': 'football'
-#         }
-#     }
-#
-#     # Make a POST request to the API endpoint
-#     response = api_client.post(url, data, format='json')
-#
-#     # Assert the response status code and any other relevant assertions
-#     assert response.status_code == status.HTTP_200_OK
-#     assert 'data' in response.data
-#     assert len(response.data['data']) > 0
-#     assert response.data['data'][0]['name'] == 'Football'
-#
-# # Test setup
-# @pytest.fixture
-# def api_client():
-#     return APIClient()
-#
-# # Register the test case with pytest
-# @pytest.mark.django_db
-# def test_get_sport(api_client):
-#     # Call the actual test function
-#     test_get_sport(api_client)
-#
-#
-#
-# import json
-# from rest_framework import status
-# from rest_framework.test import APIRequestFactory, APIClient
-# import pytest
-#
-# from your_app.views import GetSport
-#
-# @pytest.fixture
-# def api_client():
-#     return APIClient()
-#
-# @pytest.fixture
-# def api_factory():
-#     return APIRequestFactory()
-#
-# @pytest.mark.django_db
-# def test_get_sport(api_factory, api_client):
-#     # Create a sample request data
-#     request_data = {
-#         "filter": {
-#             "totalEvent": 5,
-#             "name": "example"
-#         }
-#     }
-#
-#     # Create a request using the API factory
-#     url = "/path/to/get_sport/"
-#     request = api_factory.post(url, request_data, format="json")
-#
-#     # Use the API client to send the request
-#     response = api_client.post(url, request_data, format="json")
-#
-#     assert response.status_code == status.HTTP_200_OK
-#
-#     # Parse the response JSON and assert its contents
-#     response_data = response.json()
-#     assert "data" in response_data
-#     assert isinstance(response_data["data"], list)
-#
-#     # Add more assertions as needed
-#
+from django.db import transaction
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+
+
+class TestCreateAPI(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_sport(self):
+        request_data = {
+            'name': 'BaseBall',
+            'slug': 'BaseBallSlug',
+            'active': 'true'
+        }
+
+        url = reverse('base:create_sport')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+        assert response_data['responseCode'] == 200
+        assert 'id' in response_data
+        assert isinstance(response_data['id'], int)
+        return response_data
+
+    def test_event(self):
+        response_data = self.test_sport()
+
+        request_data = {
+            'name': 'BaseBall Match 3',
+            'slug': 'BaseBall-match-3',
+            'active': True,
+            'event_type': 'preplay',
+            'sport_id': response_data['id'],
+            'status': 'pending',
+            'scheduled_start': '2023-06-30 19:30:00',
+            'actual_start': '2023-06-30 19:30:00'
+        }
+
+        url = reverse('base:create_event')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
+        assert 'id' in response_data
+        assert isinstance(response_data['id'], int)
+        return response_data
+
+    def test_selection(self):
+        self.test_sport()
+        response_data = self.test_event()
+
+        request_data = {
+            'name': 'Base Ball Team A',
+            'event_id': response_data['id'],
+            'price': 1.5,
+            'active': True,
+            'outcome': 'unsettled'
+        }
+
+        # Make the request
+        url = reverse('base:create_selection')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+        assert response_data['responseCode'] == 200
+        assert 'id' in response_data
+        assert isinstance(response_data['id'], int)
+
+
+class TestGetAPI(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_sport(self):
+        # Create a sample request data
+        request_data = {
+            'filter': {
+                'totalEvent': 5,
+                'name': ''
+            }
+        }
+
+        url = reverse('base:get_sport')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+        assert 'data' in response_data
+        assert isinstance(response_data['data'], list)
+
+    def test_event(self):
+        request_data = {
+            'filter': {
+                'totalSelection': 0,
+                'name': 'Foose',
+                'scheduled_date': '2023-06-30 23:30:00+05:30'
+            }
+        }
+
+        url = reverse('base:get_event')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
+        assert 'data' in response_data
+
+    def test_selection(self):
+        request_data = {
+            'filter': {
+                'name': ''
+            }
+        }
+
+        # Make the request
+        url = reverse('base:get_selection')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
+        assert 'data' in response_data
+
+
+class TestUpdateAPI(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        create_api = TestCreateAPI()
+        create_api.setUp()
+        create_api.test_sport()
+        create_api.test_event()
+        create_api.test_selection()
+
+    def test_sport(self):
+        # Create a sample request data
+        request_data = {
+            "id": "1",
+            "name": "Foot-ball",
+            "slug": "Foot-ball-Slug",
+            "active": True
+        }
+
+        url = reverse('base:update_sport')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
+
+    def test_event(self):
+        request_data = {
+            "name": "Football Match",
+            "slug": "football-match",
+            "active": False,
+            "event_type": "preplay",
+            "id": 1,
+            "status": "started",
+            "scheduled_start": "2023-06-30 18:00:00",
+            "actual_start": None
+        }
+
+        url = reverse('base:update_event')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
+
+    def test_selection(self):
+        request_data = {
+            "name": "Basketball Team B",
+            "id": 1,
+            "price": 1.5,
+            "active": True,
+            "outcome": "unsettled"
+        }
+
+        # Make the request
+        url = reverse('base:update_selection')
+        response = self.client.post(url, request_data, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        response_data = response.json()
+
+        assert response_data['responseCode'] == 200
